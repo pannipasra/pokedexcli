@@ -16,6 +16,8 @@ type cliCommand struct {
 var commandLists map[string]cliCommand
 
 func main() {
+	// Create a scanner that reads from standard input (os.Stdin)
+	scanner := bufio.NewScanner(os.Stdin)
 	prompt := "Pokedex > "
 	commandLists = map[string]cliCommand{
 		"exit": {
@@ -31,9 +33,6 @@ func main() {
 	}
 
 	for {
-		// Create a scanner that reads from standard input (os.Stdin)
-		scanner := bufio.NewScanner(os.Stdin)
-
 		fmt.Print(prompt)
 
 		// Use Scan() to read the next line of input
