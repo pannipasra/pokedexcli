@@ -140,7 +140,13 @@ func commandMap() error {
 		return err
 	}
 
-	fmt.Println(pokedex)
+	fmt.Printf("Count: %d\n", pokedex.Count)
+	fmt.Printf("Next: %s\n", pokedex.Next)
+	fmt.Printf("Previous: %v\n", pokedex.Previous)
+
+	for i, result := range pokedex.Results {
+		fmt.Printf("Result %d: %s - %s\n", i+1, result.Name, result.Url)
+	}
 
 	return nil
 }
