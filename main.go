@@ -63,7 +63,7 @@ func main() {
 		"mapb": {
 			name:        "mapb",
 			description: "Displays 20 Pokémon previous locations per map call.",
-			callback:    commandMap,
+			callback:    commandMapb,
 		},
 	}
 
@@ -135,6 +135,10 @@ func commandHelp(config *config) error {
 func commandMap(config *config) error {
 	url := "https://pokeapi.co/api/v2/location-area"
 
+	if config.Next != nil {
+		url = *config.Next
+	}
+
 	// Make http request
 	res, err := http.Get(url)
 	if err != nil {
@@ -155,9 +159,53 @@ func commandMap(config *config) error {
 		return err
 	}
 
-	fmt.Printf("Count: %d\n", pokedex.Count)
-	fmt.Printf("Next: %s\n", *pokedex.Next)
-	fmt.Printf("Previous: %v\n", pokedex.Previous)
+	// Setup next link to config
+	// fmt.Printf("Count: %d\n", pokedex.Count)
+	// fmt.Printf("Next: %s\n", *pokedex.Next)
+	// fmt.Printf("Previous: %v\n", pokedex.Previous)
+	config.Previous = pokedex.Previous
+	config.Next = pokedex.Next
+
+	for _, result := range pokedex.Results {
+		fmt.Println(result.Name)
+	}
+
+	return nil
+}
+
+func commandMapb(config *config) error {
+	url := "https://pokeapi.co/api/v2/location-area"
+
+	if config.Previous != nil {
+		url = *config.Previous
+	}
+
+	// Make http request
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	// Parse JSON into PokedexMap struct
+	var pokedex PokedexMap
+	err = json.Unmarshal(body, &pokedex)
+	if err != nil {
+		return err
+	}
+
+	// Setup next link to config
+	// fmt.Printf("Count: %d\n", pokedex.Count)
+	// fmt.Printf("Next: %s\n", *pokedex.Next)
+	// fmt.Printf("Previous: %v\n", pokedex.Previous)
+	config.Previous = pokedex.Previous
+	config.Next = pokedex.Next
 
 	for _, result := range pokedex.Results {
 		fmt.Println(result.Name)
