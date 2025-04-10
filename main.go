@@ -13,13 +13,18 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(config *config) error
+}
+
+type config struct {
+	Next     *string
+	Previous *string
 }
 
 type PokedexMap struct {
 	Count    int                `json:"count"`
-	Next     string             `json:"next"`
-	Previous interface{}        `json:"previous"` // Using interface{} to handle null
+	Next     *string            `json:"next"`
+	Previous *string            `json:"previous"`
 	Results  []PokedexMapResult `json:"results"`
 }
 
@@ -34,6 +39,11 @@ func main() {
 	// Create a scanner that reads from standard input (os.Stdin)
 	scanner := bufio.NewScanner(os.Stdin)
 	prompt := "Pokedex > "
+	config := &config{
+		Next:     nil,
+		Previous: nil,
+	}
+
 	commandLists = map[string]cliCommand{
 		"exit": {
 			name:        "exit",
@@ -47,7 +57,12 @@ func main() {
 		},
 		"map": {
 			name:        "map",
-			description: "Displays 20 Pokémon locations per map call.",
+			description: "Displays 20 Pokémon next locations per map call.",
+			callback:    commandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays 20 Pokémon previous locations per map call.",
 			callback:    commandMap,
 		},
 	}
@@ -70,7 +85,7 @@ func main() {
 				// Check if the first word is a command
 				if command, exists := commandLists[commandName]; exists {
 					// Command exists, execute its callback
-					err := command.callback()
+					err := command.callback(config)
 					if err != nil {
 						fmt.Fprintln(os.Stderr, "Error executing command:", err)
 					}
@@ -100,13 +115,13 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandExit() error {
+func commandExit(config *config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil // This line will never execute due to os.Exit
 }
 
-func commandHelp() error {
+func commandHelp(config *config) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 
@@ -117,8 +132,8 @@ func commandHelp() error {
 	return nil
 }
 
-func commandMap() error {
-	url := "https://pokeapi.co/api/v2/location-area?offset=20&limit=20"
+func commandMap(config *config) error {
+	url := "https://pokeapi.co/api/v2/location-area"
 
 	// Make http request
 	res, err := http.Get(url)
@@ -141,11 +156,11 @@ func commandMap() error {
 	}
 
 	fmt.Printf("Count: %d\n", pokedex.Count)
-	fmt.Printf("Next: %s\n", pokedex.Next)
+	fmt.Printf("Next: %s\n", *pokedex.Next)
 	fmt.Printf("Previous: %v\n", pokedex.Previous)
 
-	for i, result := range pokedex.Results {
-		fmt.Printf("Result %d: %s - %s\n", i+1, result.Name, result.Url)
+	for _, result := range pokedex.Results {
+		fmt.Println(result.Name)
 	}
 
 	return nil
