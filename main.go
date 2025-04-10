@@ -1,50 +1,81 @@
 package main
 
 import (
-	"fmt"
-	"strings"
 	"bufio"
+	"fmt"
 	"os"
+	"strings"
 )
 
-func main(){
+type cliCommand struct {
+	name        string
+	description string
+	callback    func() error
+}
+
+func main() {
 	prompt := "Pokedex > "
+	commandLists := map[string]cliCommand{
+		"exit": {
+			name:        "exit",
+			description: "Exit the Pokedex",
+			callback:    commandExit,
+		},
+	}
 
 	for {
-	// Create a scanner that reads from standard input (os.Stdin)
-	scanner := bufio.NewScanner(os.Stdin)
+		// Create a scanner that reads from standard input (os.Stdin)
+		scanner := bufio.NewScanner(os.Stdin)
 
-	fmt.Print(prompt)
+		fmt.Print(prompt)
 
-	// Use Scan() to read the next line of input
-	if scanner.Scan() {
-		// Get text that was read
-		input := scanner.Text()
+		// Use Scan() to read the next line of input
+		if scanner.Scan() {
+			// Get text that was read
+			input := scanner.Text()
 
-		cleanInputWords := cleanInput(input)
+			inputs := cleanInput(input)
 
-		fmt.Println("Your command was: ", cleanInputWords[0])
+			if len(inputs) == 0 {
+				continue
+			}
+
+			// Check if the first word is a command
+			commandName := inputs[0]
+
+			if command, exists := commandLists[commandName]; exists {
+				// Command exists, execute its callback
+				err := command.callback()
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error executing command:", err)
+				}
+			} else {
+				fmt.Println("Unknown command")
+			}
+		}
+
+		// Check for errors
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "Error reading input:", err)
+		}
+
 	}
-
-	// Check for erros
-	if err := scanner.Err(); err != nil {
-		fmt.Println(os.Stderr, "Error reading input:", err)
-	}
-
-
-}
 }
 
 func cleanInput(text string) []string {
 	// Trim leading and trailing whitespace
 	text = strings.TrimSpace(text)
-	
+
 	text = strings.ToLower(text)
 
 	// Convert to lowercase and split by whitespace
 	words := strings.Fields(text)
 
-
 	return words
 }
 
+func commandExit() error {
+	fmt.Println("Closing the Pokedex... Goodbye!")
+	os.Exit(0)
+	return nil // This line will never execute due to os.Exit
+}
