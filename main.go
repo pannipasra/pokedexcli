@@ -13,13 +13,20 @@ type cliCommand struct {
 	callback    func() error
 }
 
+var commandLists map[string]cliCommand
+
 func main() {
 	prompt := "Pokedex > "
-	commandLists := map[string]cliCommand{
+	commandLists = map[string]cliCommand{
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
 			callback:    commandExit,
+		},
+		"help": {
+			name:        "help",
+			description: "Displays a help message",
+			callback:    commandHelp,
 		},
 	}
 
@@ -40,17 +47,19 @@ func main() {
 				continue
 			}
 
-			// Check if the first word is a command
-			commandName := inputs[0]
+			fmt.Println("inputs:", inputs)
 
-			if command, exists := commandLists[commandName]; exists {
-				// Command exists, execute its callback
-				err := command.callback()
-				if err != nil {
-					fmt.Fprintln(os.Stderr, "Error executing command:", err)
+			for _, commandName := range inputs {
+				// Check if the first word is a command
+				if command, exists := commandLists[commandName]; exists {
+					// Command exists, execute its callback
+					err := command.callback()
+					if err != nil {
+						fmt.Fprintln(os.Stderr, "Error executing command:", err)
+					}
+				} else {
+					fmt.Println("Unknown command")
 				}
-			} else {
-				fmt.Println("Unknown command")
 			}
 		}
 
@@ -78,4 +87,15 @@ func commandExit() error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil // This line will never execute due to os.Exit
+}
+
+func commandHelp() error {
+	fmt.Println("Welcome to the Pokedex!")
+	fmt.Println("Usage:")
+
+	for key, value := range commandLists {
+		fmt.Printf("%v: %v\n", key, value.description)
+	}
+
+	return nil
 }
