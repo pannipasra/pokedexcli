@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -11,6 +14,18 @@ type cliCommand struct {
 	name        string
 	description string
 	callback    func() error
+}
+
+type PokedexMap struct {
+	Count    int                `json:"count"`
+	Next     string             `json:"next"`
+	Previous interface{}        `json:"previous"` // Using interface{} to handle null
+	Results  []PokedexMapResult `json:"results"`
+}
+
+type PokedexMapResult struct {
+	Name string `json:"name"`
+	Url  string `json:"url"`
 }
 
 var commandLists map[string]cliCommand
@@ -30,6 +45,11 @@ func main() {
 			description: "Displays a help message",
 			callback:    commandHelp,
 		},
+		"map": {
+			name:        "map",
+			description: "Displays 20 Pokémon locations per map call.",
+			callback:    commandMap,
+		},
 	}
 
 	for {
@@ -45,8 +65,6 @@ func main() {
 			if len(inputs) == 0 {
 				continue
 			}
-
-			fmt.Println("inputs:", inputs)
 
 			for _, commandName := range inputs {
 				// Check if the first word is a command
@@ -95,6 +113,34 @@ func commandHelp() error {
 	for key, value := range commandLists {
 		fmt.Printf("%v: %v\n", key, value.description)
 	}
+
+	return nil
+}
+
+func commandMap() error {
+	url := "https://pokeapi.co/api/v2/location-area?offset=20&limit=20"
+
+	// Make http request
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	// Parse JSON into PokedexMap struct
+	var pokedex PokedexMap
+	err = json.Unmarshal(body, &pokedex)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(pokedex)
 
 	return nil
 }
