@@ -2,35 +2,17 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
+
+	"github.com/pannipasra/pokedexcli/internals/pokeapi"
 )
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(config *config) error
-}
-
-type config struct {
-	Next     *string
-	Previous *string
-}
-
-type PokedexMap struct {
-	Count    int                `json:"count"`
-	Next     *string            `json:"next"`
-	Previous *string            `json:"previous"`
-	Results  []PokedexMapResult `json:"results"`
-}
-
-type PokedexMapResult struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
+	callback    func(config *pokeapi.Config, client *pokeapi.Client) error
 }
 
 var commandLists map[string]cliCommand
@@ -39,7 +21,10 @@ func main() {
 	// Create a scanner that reads from standard input (os.Stdin)
 	scanner := bufio.NewScanner(os.Stdin)
 	prompt := "Pokedex > "
-	config := &config{
+
+	// Initiate PokeAPI client and config
+	client := pokeapi.NewClient()
+	config := &pokeapi.Config{
 		Next:     nil,
 		Previous: nil,
 	}
@@ -85,7 +70,7 @@ func main() {
 				// Check if the first word is a command
 				if command, exists := commandLists[commandName]; exists {
 					// Command exists, execute its callback
-					err := command.callback(config)
+					err := command.callback(config, client)
 					if err != nil {
 						fmt.Fprintln(os.Stderr, "Error executing command:", err)
 					}
@@ -115,13 +100,13 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandExit(config *config) error {
+func commandExit(config *pokeapi.Config, client *pokeapi.Client) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil // This line will never execute due to os.Exit
 }
 
-func commandHelp(config *config) error {
+func commandHelp(config *pokeapi.Config, client *pokeapi.Client) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 
@@ -132,82 +117,27 @@ func commandHelp(config *config) error {
 	return nil
 }
 
-func commandMap(config *config) error {
-	url := "https://pokeapi.co/api/v2/location-area"
-
-	if config.Next != nil {
-		url = *config.Next
-	}
-
-	// Make http request
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	// Read response body
-	body, err := io.ReadAll(res.Body)
+func commandMap(config *pokeapi.Config, client *pokeapi.Client) error {
+	res, err := client.ListLocationAreas(config)
 	if err != nil {
 		return err
 	}
 
-	// Parse JSON into PokedexMap struct
-	var pokedex PokedexMap
-	err = json.Unmarshal(body, &pokedex)
-	if err != nil {
-		return err
-	}
-
-	// Setup next link to config
-	// fmt.Printf("Count: %d\n", pokedex.Count)
-	// fmt.Printf("Next: %s\n", *pokedex.Next)
-	// fmt.Printf("Previous: %v\n", pokedex.Previous)
-	config.Previous = pokedex.Previous
-	config.Next = pokedex.Next
-
-	for _, result := range pokedex.Results {
+	// Print the results
+	for _, result := range res.Results {
 		fmt.Println(result.Name)
 	}
 
 	return nil
 }
 
-func commandMapb(config *config) error {
-	url := "https://pokeapi.co/api/v2/location-area"
-
-	if config.Previous != nil {
-		url = *config.Previous
-	}
-
-	// Make http request
-	res, err := http.Get(url)
+func commandMapb(config *pokeapi.Config, client *pokeapi.Client) error {
+	res, err := client.ListPreviousLocationAreas(config)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
-
-	// Read response body
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	// Parse JSON into PokedexMap struct
-	var pokedex PokedexMap
-	err = json.Unmarshal(body, &pokedex)
-	if err != nil {
-		return err
-	}
-
-	// Setup next link to config
-	// fmt.Printf("Count: %d\n", pokedex.Count)
-	// fmt.Printf("Next: %s\n", *pokedex.Next)
-	// fmt.Printf("Previous: %v\n", pokedex.Previous)
-	config.Previous = pokedex.Previous
-	config.Next = pokedex.Next
-
-	for _, result := range pokedex.Results {
+	// Print the results
+	for _, result := range res.Results {
 		fmt.Println(result.Name)
 	}
 
