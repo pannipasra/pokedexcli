@@ -134,3 +134,29 @@ func (c *Client) ListPreviousLocationAreas(config *Config) (*LocationAreaResp, e
 
 	return &locationArea, nil
 }
+
+func (c *Client) Explore(locationName string) (*ExploreAreaEncounter, error) {
+	url := fmt.Sprintf("%s/location-area/%s", c.BaseURL, locationName)
+
+	// Make a request
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	// Read a byte
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse to JSON
+	var exploreEncouter ExploreAreaEncounter
+	err = json.Unmarshal(body, &exploreEncouter)
+	if err != nil {
+		return nil, err
+	}
+
+	return &exploreEncouter, nil
+}
