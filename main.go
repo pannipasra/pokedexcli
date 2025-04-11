@@ -12,7 +12,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(config *pokeapi.Config, client *pokeapi.Client) error
+	callback    func(client *pokeapi.Client, config *pokeapi.Config, param string) error
 }
 
 var commandLists map[string]cliCommand
@@ -50,6 +50,11 @@ func main() {
 			description: "Displays 20 Pokémon previous locations per map call.",
 			callback:    commandMapb,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Explore a location area for Pokémon. Usage: explore <area_name>",
+			callback:    commandExplore,
+		},
 	}
 
 	for {
@@ -66,17 +71,21 @@ func main() {
 				continue
 			}
 
-			for _, commandName := range inputs {
-				// Check if the first word is a command
-				if command, exists := commandLists[commandName]; exists {
-					// Command exists, execute its callback
-					err := command.callback(config, client)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, "Error executing command:", err)
-					}
-				} else {
-					fmt.Println("Unknown command")
+			commandName := inputs[0]
+			param := ""
+			if len(inputs) > 1 {
+				param = inputs[1]
+			}
+
+			// Check if the first word is a command
+			if command, exists := commandLists[commandName]; exists {
+				// Command exists, execute its callback
+				err := command.callback(client, config, param)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Error executing command:", err)
 				}
+			} else {
+				fmt.Println("Unknown command")
 			}
 		}
 
@@ -100,13 +109,13 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandExit(config *pokeapi.Config, client *pokeapi.Client) error {
+func commandExit(client *pokeapi.Client, config *pokeapi.Config, param string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil // This line will never execute due to os.Exit
 }
 
-func commandHelp(config *pokeapi.Config, client *pokeapi.Client) error {
+func commandHelp(client *pokeapi.Client, config *pokeapi.Config, param string) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 
@@ -117,7 +126,7 @@ func commandHelp(config *pokeapi.Config, client *pokeapi.Client) error {
 	return nil
 }
 
-func commandMap(config *pokeapi.Config, client *pokeapi.Client) error {
+func commandMap(client *pokeapi.Client, config *pokeapi.Config, param string) error {
 	res, err := client.ListLocationAreas(config)
 	if err != nil {
 		return err
@@ -131,7 +140,7 @@ func commandMap(config *pokeapi.Config, client *pokeapi.Client) error {
 	return nil
 }
 
-func commandMapb(config *pokeapi.Config, client *pokeapi.Client) error {
+func commandMapb(client *pokeapi.Client, config *pokeapi.Config, param string) error {
 	res, err := client.ListPreviousLocationAreas(config)
 	if err != nil {
 		return err
@@ -139,6 +148,25 @@ func commandMapb(config *pokeapi.Config, client *pokeapi.Client) error {
 	// Print the results
 	for _, result := range res.Results {
 		fmt.Println(result.Name)
+	}
+
+	return nil
+}
+
+func commandExplore(client *pokeapi.Client, config *pokeapi.Config, locationName string) error {
+	if locationName == "" {
+		return fmt.Errorf("area name is required. Usage: explore <area_name>")
+	}
+
+	res, err := client.Explore(locationName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Exploring %s...\n", locationName)
+	fmt.Println("Found Pokemon:")
+	for _, pokemon := range res.PokemonEncounters {
+		fmt.Println("-", pokemon.Pokemon.Name)
 	}
 
 	return nil
