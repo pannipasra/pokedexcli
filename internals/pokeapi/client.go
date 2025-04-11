@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/pannipasra/pokedexcli/internals/pokecache"
 )
 
 // Client is resiposible for making request to PokeAPI
 type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
+	Cache      *pokecache.Cache
 }
 
 // Config stores current pagination state
@@ -24,6 +28,7 @@ func NewClient() *Client {
 	return &Client{
 		BaseURL:    "https://pokeapi.co/api/v2",
 		HTTPClient: &http.Client{},
+		Cache:      pokecache.NewCache(5 * time.Minute),
 	}
 }
 
@@ -38,6 +43,19 @@ func (c *Client) ListLocationAreas(config *Config) (*LocationAreaResp, error) {
 		url = *config.Next
 	}
 
+	// Check if we have this URL cached
+	if cachedData, found := c.Cache.Get(url); found {
+		// Use cached data
+		var locationAreaResp LocationAreaResp
+		err := json.Unmarshal(cachedData, &locationAreaResp)
+		if err != nil {
+			// Update config with pagination links
+			config.Next = locationAreaResp.Next
+			config.Previous = locationAreaResp.Previous
+			return &locationAreaResp, nil
+		}
+	}
+
 	// Make HTTP request
 	res, err := c.HTTPClient.Get(url)
 	if err != nil {
@@ -50,6 +68,9 @@ func (c *Client) ListLocationAreas(config *Config) (*LocationAreaResp, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Add to cache
+	c.Cache.Add(url, body)
 
 	// Parse JSON
 	var locationArea LocationAreaResp
@@ -73,6 +94,17 @@ func (c *Client) ListPreviousLocationAreas(config *Config) (*LocationAreaResp, e
 		url = *config.Previous
 	}
 
+	// Check if we have this URL in cached
+	if cachedData, found := c.Cache.Get(url); found {
+		// Use cached data
+		var locationAreaResp LocationAreaResp
+		err := json.Unmarshal(cachedData, &locationAreaResp)
+		if err != nil {
+			return nil, err
+		}
+		return &locationAreaResp, nil
+	}
+
 	// Make HTTP request
 	res, err := c.HTTPClient.Get(url)
 	if err != nil {
@@ -85,6 +117,9 @@ func (c *Client) ListPreviousLocationAreas(config *Config) (*LocationAreaResp, e
 	if err != nil {
 		return nil, err
 	}
+
+	// Add to cache
+	c.Cache.Add(url, body)
 
 	// Parse JSON
 	var locationArea LocationAreaResp
