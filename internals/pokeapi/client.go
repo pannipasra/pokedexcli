@@ -138,6 +138,18 @@ func (c *Client) ListPreviousLocationAreas(config *Config) (*LocationAreaResp, e
 func (c *Client) Explore(locationName string) (*ExploreAreaEncounter, error) {
 	url := fmt.Sprintf("%s/location-area/%s", c.BaseURL, locationName)
 
+	// Check if url already exists in cache
+	if cachedData, found := c.Cache.Get(url); found {
+		// Use cached data
+		var exploreEncouter ExploreAreaEncounter
+		err := json.Unmarshal(cachedData, &exploreEncouter)
+		if err != nil {
+			return nil, err
+		}
+
+		return &exploreEncouter, nil
+	}
+
 	// Make a request
 	res, err := http.Get(url)
 	if err != nil {
@@ -150,6 +162,9 @@ func (c *Client) Explore(locationName string) (*ExploreAreaEncounter, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Add to cache
+	c.Cache.Add(url, body)
 
 	// Parse to JSON
 	var exploreEncouter ExploreAreaEncounter
