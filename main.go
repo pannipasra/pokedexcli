@@ -55,6 +55,11 @@ func main() {
 			description: "Explore a location area for Pokémon. Usage: explore <area_name>",
 			callback:    commandExplore,
 		},
+		"catch": {
+			name:        "catch",
+			description: "Catching Pokemon by name. Usage: catch <pokemon_name>",
+			callback:    commandCatch,
+		},
 	}
 
 	for {
@@ -158,16 +163,34 @@ func commandExplore(client *pokeapi.Client, config *pokeapi.Config, locationName
 		return fmt.Errorf("area name is required. Usage: explore <area_name>")
 	}
 
-	res, err := client.Explore(locationName)
+	exploreEncounter, err := client.Explore(locationName)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("Exploring %s...\n", locationName)
 	fmt.Println("Found Pokemon:")
-	for _, pokemon := range res.PokemonEncounters {
+	for _, pokemon := range exploreEncounter.PokemonEncounters {
 		fmt.Println("-", pokemon.Pokemon.Name)
 	}
+
+	return nil
+}
+
+func commandCatch(client *pokeapi.Client, config *pokeapi.Config, pokemonName string) error {
+	if pokemonName == "" {
+		return fmt.Errorf("pokemon name is required. Usage: catch <pokemon_name>")
+	}
+
+	pokemon, err := client.Catch(pokemonName)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
+	fmt.Printf("%s escaped!\n", pokemonName)
+	fmt.Printf("%s was caught!\n", pokemonName)
+	fmt.Printf("%s has base_experience %v\n", pokemonName, pokemon.BaseExperience)
 
 	return nil
 }

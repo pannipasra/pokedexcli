@@ -175,3 +175,44 @@ func (c *Client) Explore(locationName string) (*ExploreAreaEncounter, error) {
 
 	return &exploreEncouter, nil
 }
+
+func (c *Client) Catch(pokemonName string) (*PokemonObject, error) {
+	url := fmt.Sprintf("%s/pokemon/%s", c.BaseURL, pokemonName)
+
+	// Check if url already exists in cache
+	if cachedData, found := c.Cache.Get(url); found {
+		// Use cached data
+		var pokemon PokemonObject
+		err := json.Unmarshal(cachedData, &pokemon)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pokemon, nil
+	}
+
+	// Make a request
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	// Read a byte
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add to cache
+	c.Cache.Add(url, body)
+
+	// Parse to JSON
+	var pokemon PokemonObject
+	err = json.Unmarshal(body, &pokemon)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pokemon, nil
+}
