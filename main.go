@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pannipasra/pokedexcli/internals/pokeapi"
 )
@@ -188,9 +190,52 @@ func commandCatch(client *pokeapi.Client, config *pokeapi.Config, pokemonName st
 	}
 
 	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
-	fmt.Printf("%s escaped!\n", pokemonName)
-	fmt.Printf("%s was caught!\n", pokemonName)
-	fmt.Printf("%s has base_experience %v\n", pokemonName, pokemon.BaseExperience)
+
+	catchProbability := calculateCatchProbability(pokemon.BaseExperience)
+
+	// Create a new random source r with current time
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Using rand.Intn for integer-based random value
+	// We'll use a scale of 100 to represent percentages
+	randomValue := r.Intn(100)
+	scaledProbability := catchProbability * 100
+
+	// If random value is less than scaled catch probability, the Pokémon is caught
+	if float64(randomValue) < scaledProbability {
+		fmt.Printf("%s was caught!\n", pokemonName)
+	} else {
+		fmt.Printf("%s escaped!\n", pokemonName)
+	}
+
+	// fmt.Printf("catchProbability: %v, scaledProbability: %v, randomValue: %v\n", catchProbability, scaledProbability, randomValue)
+	// fmt.Printf("%s has base_experience %v\n", pokemonName, pokemon.BaseExperience)
 
 	return nil
+}
+
+// calculateCatchProbability returns a value between 0 and 1
+// representing the probability of catching a Pokemon based on its base experience
+func calculateCatchProbability(baseExperience int) float64 {
+	// Base formula: Higher experience = lower catch rate
+	// We can adjust these constants based on desired difficulty
+	const (
+		minProbability      = 0.1   // Minimum catch probability (for very high base experience)
+		maxProbability      = 0.9   // Maximum catch probability (for very low base experience)
+		baseExperienceScale = 200.0 // Scaling factor for base experience
+	)
+
+	// Calculate catch probability (inverse relationship with base experience)
+	// This creates a curve where probability decreases as base experience increases
+	probability := maxProbability - float64(baseExperience)/baseExperienceScale*(maxProbability-minProbability)
+
+	// Ensure probability stays within bounds
+	if probability < minProbability {
+		return minProbability
+	}
+	if probability > maxProbability {
+		return maxProbability
+	}
+
+	return probability
 }
