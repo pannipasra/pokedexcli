@@ -62,6 +62,11 @@ func main() {
 			description: "Catching Pokemon by name. Usage: catch <pokemon_name>",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "It takes the name of a Pokemon and prints the name, height, weight, stats and type(s) of the Pokemon",
+			callback:    commandInspect,
+		},
 	}
 
 	for {
@@ -246,4 +251,33 @@ func calculateCatchProbability(baseExperience int) float64 {
 	}
 
 	return probability
+}
+
+// It takes the name of a Pokemon and prints the name, height, weight, stats and type(s) of the Pokemon
+func commandInspect(client *pokeapi.Client, config *pokeapi.Config, pokemonName string) error {
+	if pokemonName == "" {
+		return fmt.Errorf("pokemon name is required. Usage: catch <pokemon_name>")
+	}
+
+	if config.CaughtPokemon == nil {
+		fmt.Println("You has not caught the Pokemon, yet.")
+		return nil
+	}
+	pokemon, exists := (*config.CaughtPokemon)[pokemonName]
+	if !exists {
+		fmt.Println("You has not caught the Pokemon, yet.")
+		return nil
+	}
+
+	fmt.Printf("Name: %s\nHeight: %v\nWeight: %v\n", pokemon.Name, pokemon.Height, pokemon.Weight)
+	fmt.Printf("Stats:\n")
+	for _, s := range pokemon.Stats {
+		fmt.Printf(" - %s: %v\n", s.Stat.Name, s.BaseStat)
+	}
+	fmt.Printf("Types:\n")
+	for _, t := range pokemon.Types {
+		fmt.Printf(" - %s\n", t.Type.Name)
+	}
+
+	return nil
 }
