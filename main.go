@@ -191,7 +191,7 @@ func commandCatch(client *pokeapi.Client, config *pokeapi.Config, pokemonName st
 
 	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
 
-	catchProbability := calculateCatchProbability(pokemon.BaseExperience)
+	pokemonBaseCatchProbability := calculateCatchProbability(pokemon.BaseExperience)
 
 	// Create a new random source r with current time
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -199,13 +199,21 @@ func commandCatch(client *pokeapi.Client, config *pokeapi.Config, pokemonName st
 	// Using rand.Intn for integer-based random value
 	// We'll use a scale of 100 to represent percentages
 	randomValue := r.Intn(100)
-	scaledProbability := catchProbability * 100
+	pokemonScaledProbability := pokemonBaseCatchProbability * 100
 
 	// If random value is less than scaled catch probability, the Pokémon is caught
-	if float64(randomValue) < scaledProbability {
-		fmt.Printf("%s was caught!\n", pokemonName)
+	if float64(randomValue) < pokemonScaledProbability {
+		if config.CaughtPokemon == nil {
+			m := make(map[string]pokeapi.Pokemon)
+			config.CaughtPokemon = &m
+		}
+
+		// Adding a Pokemon:
+		(*config.CaughtPokemon)[pokemon.Name] = *pokemon
+
+		fmt.Printf("%s was caught!\n", pokemon.Name)
 	} else {
-		fmt.Printf("%s escaped!\n", pokemonName)
+		fmt.Printf("%s escaped!\n", pokemon.Name)
 	}
 
 	// fmt.Printf("catchProbability: %v, scaledProbability: %v, randomValue: %v\n", catchProbability, scaledProbability, randomValue)

@@ -17,10 +17,11 @@ type Client struct {
 	Cache      *pokecache.Cache
 }
 
-// Config stores current pagination state
+// Config
 type Config struct {
-	Next     *string
-	Previous *string
+	Next          *string
+	Previous      *string
+	CaughtPokemon *map[string]Pokemon
 }
 
 // NewClient create a new PokeAPI client
@@ -176,13 +177,13 @@ func (c *Client) Explore(locationName string) (*ExploreAreaEncounter, error) {
 	return &exploreEncouter, nil
 }
 
-func (c *Client) Catch(pokemonName string) (*PokemonObject, error) {
+func (c *Client) Catch(pokemonName string) (*Pokemon, error) {
 	url := fmt.Sprintf("%s/pokemon/%s", c.BaseURL, pokemonName)
 
 	// Check if url already exists in cache
 	if cachedData, found := c.Cache.Get(url); found {
 		// Use cached data
-		var pokemon PokemonObject
+		var pokemon Pokemon
 		err := json.Unmarshal(cachedData, &pokemon)
 		if err != nil {
 			return nil, err
@@ -208,7 +209,7 @@ func (c *Client) Catch(pokemonName string) (*PokemonObject, error) {
 	c.Cache.Add(url, body)
 
 	// Parse to JSON
-	var pokemon PokemonObject
+	var pokemon Pokemon
 	err = json.Unmarshal(body, &pokemon)
 	if err != nil {
 		return nil, err
