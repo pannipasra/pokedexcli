@@ -64,8 +64,13 @@ func main() {
 		},
 		"inspect": {
 			name:        "inspect",
-			description: "It takes the name of a Pokemon and prints the name, height, weight, stats and type(s) of the Pokemon",
+			description: "It takes the name of a Pokemon and prints the name, height, weight, stats and type(s) of the Pokemon. Usage: inspect <pokemon_name>",
 			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "It takes no arguments but prints a list of all the names of the Pokemon the user has caught",
+			callback:    commandPokedex,
 		},
 	}
 
@@ -217,6 +222,7 @@ func commandCatch(client *pokeapi.Client, config *pokeapi.Config, pokemonName st
 		(*config.CaughtPokemon)[pokemon.Name] = *pokemon
 
 		fmt.Printf("%s was caught!\n", pokemon.Name)
+		fmt.Println("You may now inspect it with the inspect command.")
 	} else {
 		fmt.Printf("%s escaped!\n", pokemon.Name)
 	}
@@ -268,7 +274,6 @@ func commandInspect(client *pokeapi.Client, config *pokeapi.Config, pokemonName 
 		fmt.Println("You has not caught the Pokemon, yet.")
 		return nil
 	}
-
 	fmt.Printf("Name: %s\nHeight: %v\nWeight: %v\n", pokemon.Name, pokemon.Height, pokemon.Weight)
 	fmt.Printf("Stats:\n")
 	for _, s := range pokemon.Stats {
@@ -277,6 +282,20 @@ func commandInspect(client *pokeapi.Client, config *pokeapi.Config, pokemonName 
 	fmt.Printf("Types:\n")
 	for _, t := range pokemon.Types {
 		fmt.Printf(" - %s\n", t.Type.Name)
+	}
+
+	return nil
+}
+
+func commandPokedex(client *pokeapi.Client, config *pokeapi.Config, pokemonName string) error {
+	if config.CaughtPokemon == nil {
+		fmt.Println("")
+		return nil
+	}
+
+	fmt.Println("Your Pokedex:")
+	for _, pokemon := range *config.CaughtPokemon {
+		fmt.Printf(" - %s\n", pokemon.Name)
 	}
 
 	return nil
